@@ -6,7 +6,7 @@ import json
 from sqlalchemy.sql.sqltypes import DateTime
 
 database_name = "fit_tracker"
-database_path = "postgres://{}/{}".format('localhost:5432', database_name)
+database_path = "postgresql://{}/{}".format('localhost:5432', database_name)
 
 db = SQLAlchemy()
 
@@ -31,7 +31,7 @@ class User(db.Model):
     id = Column(Integer, primary_key=True)
     full_name = Column(String)
     nick_name = Column(String)
-    age = Column(String)
+    age = Column(Integer)
 
     def __init__(self, full_name, age, nick_name):
         self.full_name = full_name
@@ -68,8 +68,8 @@ class Body_Measurement(db.Model):
     __tablename__ = 'body_measurement'
 
     id = Column(Integer, primary_key=True)
-    weight = Column(float)
-    height = Column(float)
+    weight = Column(db.Float())
+    height = Column(db.Float())
     m_date = Column(DateTime)
     user_id = Column(Integer, db.ForeignKey('user.id'))
     user = db.relationship('User', backref=db.backref('body_measurement', lazy=True))
