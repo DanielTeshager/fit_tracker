@@ -70,14 +70,14 @@ class Body_Measurement(db.Model):
     id = Column(Integer, primary_key=True)
     weight = Column(float)
     height = Column(float)
-    measurement_date = Column(DateTime)
+    m_date = Column(DateTime)
     user_id = Column(Integer, db.ForeignKey('user.id'))
     user = db.relationship('User', backref=db.backref('body_measurement', lazy=True))
 
-    def __init__(self, weight, height, measurement_date, user_id):
+    def __init__(self, weight, height, m_date, user_id):
         self.weight = weight
         self.height = height
-        self.measurement_date = measurement_date
+        self.m_date = m_date
         self.user_id = user_id
 
     def insert(self):

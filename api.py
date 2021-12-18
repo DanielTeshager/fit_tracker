@@ -21,7 +21,6 @@ db_drop_and_create_all()
 
 # ROUTES
 '''
-@TODO implement endpoint
     GET /users
         it should be a public endpoint
     returns status code 200 and json {"success": True, "users": users} 
@@ -37,6 +36,24 @@ def get_users():
         }), 200
     except:
         abort(422)
+
+'''
+    GET /body_measurements
+        it should be a public endpoint
+    returns status code 200 and json {"success": True, "body_measurements": body_measurements}
+        or appropriate status code indicating reason for failure
+'''
+
+@app.route('/body_measurements', methods=['GET'])
+def get_body_measurements():
+    body_measurements = Body_Measurement.query.all()
+    try:
+        return jsonify({
+            'success': True,
+            'body_measurements': [body_measurement.format() for body_measurement in body_measurements]
+        }), 200
+    except:
+        abort(422)
 '''
 GET /users-detail
     it should be a secure endpoint where only fitnesstracker admins can access it
@@ -45,6 +62,7 @@ GET /users-detail
         or appropriate status code indicating reason for failure
 '''
 @app.route('/users-detail', methods=['GET'])
+@requires_auth('get:user-detail')
 def get_users_detail():
     users = User.query.all()
     try:
@@ -54,109 +72,179 @@ def get_users_detail():
         }), 200
     except:
         abort(422)
-
 '''
-@TODO implement endpoint
-    GET /body_measurements
-        it should require the 'get:drinks-detail' permission
-        it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
-        or appropriate status code indicating reason for failure
+    GET /user/body_measurements
+        it should be a private endpoint
+        it should require the 'get:body_measurements' permission
+        it should return status code 200 and json {"success": True, "body_measurements": body_measurements}
 '''
-@app.route('/body-measurements', methods=['GET'])
-@requires_auth('get:body-detail')
-def get_drinks_detail():
-    drinks = Drink.query.all()
-    return jsonify({
-        'success': True,
-        'drinks': [drink.long() for drink in drinks]
-    }), 200
-
-'''
-@TODO implement endpoint
-    POST /drinks
-        it should create a new row in the drinks table
-        it should require the 'post:drinks' permission
-        it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the newly created drink
-        or appropriate status code indicating reason for failure
-'''
-@app.route('/drinks', methods=['POST'])
-@requires_auth('post:drinks')
-def create_drink():
-    body = request.get_json()
-    if 'title' not in body:
-        abort(422)
-    title = body.get('title')
-    recipe = body.get('recipe')
+@app.route('/user/body_measurements', methods=['GET'])
+@requires_auth('get:body_measurements')
+def get_user_body_measurements(payload):
+    user_id = payload['sub']
+    body_measurements = Body_Measurement.query.filter_by(user_id=user_id).all()
     try:
-        drink = Drink(title=title, recipe=json.dumps(recipe))
-        drink.insert()
         return jsonify({
             'success': True,
-            'drinks': [drink.long()]
+            'body_measurements': [body_measurement.format() for body_measurement in body_measurements]
         }), 200
-    except Exception as e:
-        print(e)
+    except:
+        abort(422)
+
+'''
+    GET /user/body_measurements/<int:id>
+        it should be a private endpoint
+        it should require the 'get:body_measurements' permission
+        it should return status code 200 and json {"success": True, "body_measurement": body_measurement}
+            or appropriate status code indicating reason for failure
+'''
+@app.route('/user/body_measurements/<int:id>', methods=['GET'])
+@requires_auth('get:body_measurements')
+def get_user_body_measurement(payload, id):
+    user_id = payload['sub']
+    body_measurement = Body_Measurement.query.filter_by(user_id=user_id, id=id).first()
+    try:
+        return jsonify({
+            'success': True,
+            'body_measurement': body_measurement.format()
+        }), 200
+    except:
+        abort(422)
+
+'''
+  DELETE /user/body_measurements/<int:id>
+        it should be a private endpoint
+        it should require the 'delete:body_measurements' permission
+
+'''
+
+@app.route('/user/body_measurements/<int:id>', methods=['DELETE'])
+@requires_auth('delete:body_measurements')
+def delete_user_body_measurement(payload, id):
+    user_id = payload['sub']
+    body_measurement = Body_Measurement.query.filter_by(user_id=user_id, id=id).first()
+    try:
+        body_measurement.delete()
+        return jsonify({
+            'success': True,
+            'deleted': id
+        }), 200
+    except:
+        abort(422)
+
+'''
+    PATH /user/body_measurements/<int:id>
+        it should be a private endpoint
+        it should require the 'patch:body_measurements' permission
+'''
+
+@app.route('/user/body_measurements/<int:id>', methods=['PATCH'])
+@requires_auth('patch:body_measurements')
+def update_user_body_measurement(payload, id):
+    user_id = payload['sub']
+    body_measurement = Body_Measurement.query.filter_by(user_id=user_id, id=id).first()
+    body_measurement_data = request.get_json()
+    if body_measurement_data is None:
+        abort(422)
+    if 'm_date' in body_measurement_data:
+        body_measurement.date = body_measurement_data['m_date']
+    if 'weight' in body_measurement_data:
+        body_measurement.weight = body_measurement_data['weight']
+    if 'height' in body_measurement_data:
+        body_measurement.height = body_measurement_data['height']
+    try:
+        body_measurement.update()
+        return jsonify({
+            'success': True,
+            'updated': id
+        }), 200
+    except:
+        abort(422)
+'''
+    POST /users
+        it should create a new user
+        it should require the 'post:users' permission
+        it should return status code 200 and json {"success": True, "users": user}
+            or appropriate status code indicating reason for failure
+'''
+@app.route('/users', methods=['POST'])
+@requires_auth('post:users')
+def create_user(payload):
+    user_data = request.get_json()
+    if user_data is None:
+        abort(422)
+    if 'full_name' not in user_data:
+        abort(422)
+    if 'nick_name' not in user_data:
+        abort(422)
+    if 'age' not in user_data:
+        abort(422)
+    try:
+        user = User(
+            full_name=user_data['full_name'],
+            nick_name=user_data['nick_name'],
+            age=user_data['age']
+        )
+        user.insert()
+        return jsonify({
+            'success': True,
+            'created': user.id
+        }), 200
+    except:
         abort(422)
 
 
-'''
-@TODO implement endpoint
-    PATCH /drinks/<id>
-        where <id> is the existing model id
-        it should respond with a 404 error if <id> is not found
-        it should update the corresponding row for <id>
-        it should require the 'patch:drinks' permission
-        it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the updated drink
-        or appropriate status code indicating reason for failure
-'''
-@app.route('/drinks/<int:drink_id>', methods=['PATCH'])
-@requires_auth('patch:drinks')
-def update_drink(drink_id):
-    drink = Drink.query.get(drink_id)
-    if drink is None:
-        abort(404)
-    body = request.get_json()
-    if 'title' in body:
-        drink.title = body.get('title')
-    if 'recipe' in body:
-        drink.recipe = json.dumps(body.get('recipe'))
-    drink.update()
-    return jsonify({
-        'success': True,
-        'drinks': [drink.long()]
-    }), 200
+@app.route('/user/body_measurements', methods=['POST'])
+@requires_auth('post:body_measurements')
+def create_user_body_measurement(payload):
+    user_id = payload['sub']
+    body_measurement_data = request.get_json()
+    if body_measurement_data is None:
+        abort(422)
+    if 'm_date' not in body_measurement_data:
+        abort(422)
+    if 'weight' not in body_measurement_data:
+        abort(422)
+    if 'height' not in body_measurement_data:
+        abort(422)
+    try:
+        body_measurement = Body_Measurement(
+            user_id=user_id,
+            date=body_measurement_data['m_date'],
+            weight=body_measurement_data['weight'],
+            height=body_measurement_data['height']
+        )
+        body_measurement.insert()
+        return jsonify({
+            'success': True,
+            'created': body_measurement.id
+        }), 200
+    except:
+        abort(422)
 
 '''
-@TODO implement endpoint
-    DELETE /drinks/<id>
-        where <id> is the existing model id
-        it should respond with a 404 error if <id> is not found
-        it should delete the corresponding row for <id>
-        it should require the 'delete:drinks' permission
-    returns status code 200 and json {"success": True, "delete": id} where id is the id of the deleted record
-        or appropriate status code indicating reason for failure
+  DELETE /user/<int:id>
+        it should delete a user
+        it should require the 'delete:users' permission
+        it should return status code 200 and json {"success": True, "delete": id}
+            or appropriate status code indicating reason for failure
 '''
-@app.route('/drinks/<int:drink_id>', methods=['DELETE'])
-@requires_auth('delete:drinks')
-def delete_drink(drink_id):
-    drink = Drink.query.get(drink_id)
-    if drink is None:
-        abort(404)
-    drink.delete()
-    return jsonify({
-        'success': True,
-        'delete': drink_id
-    }), 200
+@app.route('/user/<int:id>', methods=['DELETE'])
+@requires_auth('delete:users')
+def delete_user(payload, id):
+    user = User.query.filter_by(id=id).first()
+    try:
+        user.delete()
+        return jsonify({
+            'success': True,
+            'deleted': id
+        }), 200
+    except:
+        abort(422)
 
-# Error Handling
 '''
-Example error handling for unprocessable entity
+Error Handling
 '''
-
-
 @app.errorhandler(422)
 def unprocessable(error):
     return jsonify({
@@ -165,17 +253,6 @@ def unprocessable(error):
         "message": "unprocessable"
     }), 422
 
-
-'''
-@TODO implement error handlers using the @app.errorhandler(error) decorator
-    each error handler should return (with approprate messages):
-             jsonify({
-                    "success": False,
-                    "error": 404,
-                    "message": "resource not found"
-                    }), 404
-
-'''
 @app.errorhandler(400)
 def bad_request(error):
     return jsonify({
@@ -184,10 +261,6 @@ def bad_request(error):
         "message": "bad request"
     }), 400
 
-'''
-@TODO implement error handler for 404
-    error handler should conform to general task above
-'''
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({
@@ -196,10 +269,6 @@ def not_found(error):
         "message": "resource not found"
     }), 404
 
-'''
-@TODO implement error handler for AuthError
-    error handler should conform to general task above
-'''
 @app.errorhandler(AuthError)
 def auth_error(error):
     return jsonify({
