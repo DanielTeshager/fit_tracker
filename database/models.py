@@ -2,6 +2,7 @@ import os
 from sqlalchemy import Column, String, Integer, create_engine
 from flask_sqlalchemy import SQLAlchemy
 import json
+from datetime import datetime
 
 from sqlalchemy.sql.sqltypes import DateTime
 
@@ -32,6 +33,7 @@ class User(db.Model):
     full_name = Column(String)
     nick_name = Column(String)
     age = Column(Integer)
+    bodys = db.relationship('Body_Measurement', backref='users', lazy=True)
 
     def __init__(self, full_name, age, nick_name):
         self.full_name = full_name
@@ -68,22 +70,23 @@ class Body_Measurement(db.Model):
     __tablename__ = 'body_measurement'
 
     id = Column(Integer, primary_key=True)
-    weight = Column(db.Float())
-    height = Column(db.Float())
-    m_date = Column(DateTime)
+    weight = Column(db.Float(), nullable=False, default=0)
+    height = Column(db.Float(), nullable=False, default=0)
     user_id = Column(Integer, db.ForeignKey('user.id'))
-    user = db.relationship('User', backref=db.backref('body_measurement', lazy=True))
+    # user = db.relationship('User', backref=db.backref('body_measurement', lazy=True))
 
-    def __init__(self, weight, height, m_date, user_id):
+    def __init__(self, weight, height, user_id):
         self.weight = weight
         self.height = height
-        self.m_date = m_date
         self.user_id = user_id
-
+    
+    def __repr__(self):
+        return json.dumps(self.format())
+    
     def insert(self):
         db.session.add(self)
         db.session.commit()
-    
+
     def update(self):
         db.session.commit()
 

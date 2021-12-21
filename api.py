@@ -4,7 +4,7 @@ from sqlalchemy import exc
 import json
 from flask_cors import CORS
 
-from database.models import setup_db, User, Body_Measurement 
+from database.models import setup_db, User, Body_Measurement, db
 from auth.auth import AuthError, requires_auth
 
 app = Flask(__name__)
@@ -132,12 +132,12 @@ def delete_user_body_measurement(payload, id):
         abort(422)
 
 '''
-    PATH /user/body_measurements/<int:id>
+    PATH /body_measurements/<int:id>
         it should be a private endpoint
         it should require the 'patch:body_measurements' permission
 '''
 
-@app.route('/user/body_measurements/<int:id>', methods=['PATCH'])
+@app.route('/body_measurements/<int:id>', methods=['PATCH'])
 @requires_auth('patch:body_measurements')
 def update_user_body_measurement(payload, id):
     user_id = payload['sub']
@@ -145,8 +145,6 @@ def update_user_body_measurement(payload, id):
     body_measurement_data = request.get_json()
     if body_measurement_data is None:
         abort(422)
-    if 'm_date' in body_measurement_data:
-        body_measurement.date = body_measurement_data['m_date']
     if 'weight' in body_measurement_data:
         body_measurement.weight = body_measurement_data['weight']
     if 'height' in body_measurement_data:
@@ -170,6 +168,7 @@ def update_user_body_measurement(payload, id):
 @requires_auth('post:users')
 def create_user(payload):
     user_data = request.get_json()
+    print(user_data)
     if user_data is None:
         abort(422)
     if 'full_name' not in user_data:
@@ -193,23 +192,25 @@ def create_user(payload):
         abort(422)
 
 
-@app.route('/user/body_measurements', methods=['POST'])
+@app.route('/users/body_measurements', methods=['POST'])
 @requires_auth('post:body_measurements')
 def create_user_body_measurement(payload):
-    user_id = payload['sub']
     body_measurement_data = request.get_json()
+    print(body_measurement_data)
     if body_measurement_data is None:
-        abort(422)
-    if 'm_date' not in body_measurement_data:
         abort(422)
     if 'weight' not in body_measurement_data:
         abort(422)
+    print('b')
     if 'height' not in body_measurement_data:
         abort(422)
+    print('c')
+    if 'user_id' not in body_measurement_data:
+        abort(422)
+    print('d')
     try:
         body_measurement = Body_Measurement(
-            user_id=user_id,
-            date=body_measurement_data['m_date'],
+            user_id=body_measurement_data['user_id'],
             weight=body_measurement_data['weight'],
             height=body_measurement_data['height']
         )
@@ -249,8 +250,16 @@ def unprocessable(error):
     return jsonify({
         "success": False,
         "error": 422,
-        "message": "unprocessable"
+        "message": "Unprocessable"
     }), 422
+
+@app.errorhandler(403)
+def forbidden(error):
+    return jsonify({
+        "success": False,
+        "error": 403,
+        "message": "Forbidden"
+    }), 403
 
 @app.errorhandler(400)
 def bad_request(error):
