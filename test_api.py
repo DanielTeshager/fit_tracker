@@ -1,6 +1,6 @@
 import unittest
 from flask import json
-import api
+import app
 from database.models import setup_db, User, Body_Measurement 
 from auth.auth import AuthError, requires_auth
 
@@ -15,7 +15,7 @@ class ApiTestCase(unittest.TestCase):
     This is the setup method for the test class
     '''
     def setUp(self):
-        self.app = api.app
+        self.app = app.app
         self.client = self.app.test_client
         self.database_path = "postgresql://{}/{}".format('localhost:5432', self.database_name)
         setup_db(self.app, self.database_path)
