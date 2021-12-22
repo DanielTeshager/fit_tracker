@@ -8,7 +8,7 @@ from sqlalchemy.sql.sqltypes import DateTime
 
 # database_name = "fit_tracker"
 # database_path = "postgresql://{}/{}".format('localhost:5432', database_name)
-database_path = "postgres://iocqyckhiidpmx:0c335fcf04d1356120385e698702a08147839f0d7041378240ad09147daa1a52@ec2-52-204-29-205.compute-1.amazonaws.com:5432/ddv8n1nupk8n5m"
+database_path = "postgres://wddxrizgviutgg:33215601224d4b33401638a839cb1f5d5b9f1ea3ab20bc7150b253516521e309@ec2-3-91-135-72.compute-1.amazonaws.com:5432/db3edpsj4qld2m"
 
 db = SQLAlchemy()
 
