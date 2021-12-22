@@ -19,6 +19,10 @@ CORS(app)
 #db_drop_and_create_all()
 
 # ROUTES
+@app.route('/')
+def index():
+    return 'Welcome to the Fit Tracker API'
+
 '''
     GET /users
         it should be a public endpoint
