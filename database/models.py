@@ -6,8 +6,9 @@ from datetime import datetime
 
 from sqlalchemy.sql.sqltypes import DateTime
 
-database_name = "fit_tracker"
-database_path = "postgresql://{}/{}".format('localhost:5432', database_name)
+# database_name = "fit_tracker"
+# database_path = "postgresql://{}/{}".format('localhost:5432', database_name)
+database_path = "postgres://iocqyckhiidpmx:0c335fcf04d1356120385e698702a08147839f0d7041378240ad09147daa1a52@ec2-52-204-29-205.compute-1.amazonaws.com:5432/ddv8n1nupk8n5m"
 
 db = SQLAlchemy()
 
