@@ -1,27 +1,44 @@
 import os
-from flask import Flask, request, jsonify, abort, redirect
+from flask import Flask, request, jsonify, abort, redirect, session, render_template, url_for
 from sqlalchemy import exc
 import json
 from flask_cors import CORS
-
+from authlib.integrations.flask_client import OAuth
 from database.models import setup_db, User, Body_Measurement, db
 from auth.auth import AuthError, requires_auth
 
 app = Flask(__name__)
+app.secret_key = 'super secret key'
 setup_db(app)
 CORS(app)
+oauth = OAuth(app)
 
-'''
-!! NOTE THIS WILL DROP ALL RECORDS AND START YOUR DB FROM SCRATCH
-!! NOTE THIS MUST BE UNCOMMENTED ON FIRST RUN
-!! Running this funciton will add one
-'''
-#db_drop_and_create_all()
+auth0 = oauth.register(
+    'auth0',
+    client_id='10aH57S9A0QVZyoQqyX0FqIcFif9Sn1Q',
+    client_secret='vHCb6SSYnBUnZ46YOtv0iwyKIx3dU0VTQiJ9xKSYiI1adztZWqiC9tqxIDY8fhDJ',
+    api_base_url='https://dev-ht91p085.us.auth0.com',
+    access_token_url='https://dev-ht91p085.us.auth0.com' + '/oauth/token',
+    authorize_url='https://dev-ht91p085.us.auth0.com' + '/authorize',
+    client_kwargs={
+        'scope': 'openid profile',
+    },
+)
+
 
 # ROUTES
 @app.route('/')
-def index():
-   return redirect('https://dev-ht91p085.us.auth0.com/authorize?audience=protones&response_type=token&client_id=10aH57S9A0QVZyoQqyX0FqIcFif9Sn1Q&redirect_uri=https://fittracker2.herokuapp.com/users-detail')
+def login():
+    return auth0.authorize_redirect(
+        redirect_uri=url_for('callback', _external=True),
+        audience='protones')
+
+
+@app.route("/callback")
+def callback():
+    # Handles response from token endpoint
+    return jsonify(auth0.authorize_access_token())
+
 
 '''
     GET /users
@@ -29,6 +46,8 @@ def index():
     returns status code 200 and json {"success": True, "users": users} 
         or appropriate status code indicating reason for failure
 '''
+
+
 @app.route('/users', methods=['GET'])
 def get_users():
     users = User.query.all()
@@ -40,12 +59,14 @@ def get_users():
     except:
         abort(422)
 
+
 '''
     GET /body_measurements
         it should be a public endpoint
     returns status code 200 and json {"success": True, "body_measurements": body_measurements}
         or appropriate status code indicating reason for failure
 '''
+
 
 @app.route('/body_measurements', methods=['GET'])
 def get_body_measurements():
@@ -57,6 +78,8 @@ def get_body_measurements():
         }), 200
     except:
         abort(422)
+
+
 '''
 GET /users-detail
     it should be a secure endpoint where only fitnesstracker admins can access it
@@ -64,6 +87,8 @@ GET /users-detail
     it should return status code 200 and json {"success": True, "users": users}
         or appropriate status code indicating reason for failure
 '''
+
+
 @app.route('/users-detail', methods=['GET'])
 @requires_auth('get:user-detail')
 def get_users_detail():
@@ -75,12 +100,16 @@ def get_users_detail():
         }), 200
     except:
         abort(422)
+
+
 '''
     GET /user/body_measurements
         it should be a private endpoint
         it should require the 'get:body_measurements' permission
         it should return status code 200 and json {"success": True, "body_measurements": body_measurements}
 '''
+
+
 @app.route('/user/body_measurements', methods=['GET'])
 @requires_auth('get:body_measurements')
 def get_user_body_measurements(payload):
@@ -94,6 +123,7 @@ def get_user_body_measurements(payload):
     except:
         abort(422)
 
+
 '''
     GET /user/body_measurements/<int:id>
         it should be a private endpoint
@@ -101,11 +131,14 @@ def get_user_body_measurements(payload):
         it should return status code 200 and json {"success": True, "body_measurement": body_measurement}
             or appropriate status code indicating reason for failure
 '''
+
+
 @app.route('/user/body_measurements/<int:id>', methods=['GET'])
 @requires_auth('get:body_measurements')
 def get_user_body_measurement(payload, id):
     user_id = payload['sub']
-    body_measurement = Body_Measurement.query.filter_by(user_id=user_id, id=id).first()
+    body_measurement = Body_Measurement.query.filter_by(
+        user_id=user_id, id=id).first()
     try:
         return jsonify({
             'success': True,
@@ -114,6 +147,7 @@ def get_user_body_measurement(payload, id):
     except:
         abort(422)
 
+
 '''
   DELETE /user/body_measurements/<int:id>
         it should be a private endpoint
@@ -121,11 +155,13 @@ def get_user_body_measurement(payload, id):
 
 '''
 
+
 @app.route('/user/body_measurements/<int:id>', methods=['DELETE'])
 @requires_auth('delete:body_measurements')
 def delete_user_body_measurement(payload, id):
     user_id = payload['sub']
-    body_measurement = Body_Measurement.query.filter_by(user_id=user_id, id=id).first()
+    body_measurement = Body_Measurement.query.filter_by(
+        user_id=user_id, id=id).first()
     try:
         body_measurement.delete()
         return jsonify({
@@ -135,17 +171,20 @@ def delete_user_body_measurement(payload, id):
     except:
         abort(422)
 
+
 '''
     PATH /body_measurements/<int:id>
         it should be a private endpoint
         it should require the 'patch:body_measurements' permission
 '''
 
+
 @app.route('/body_measurements/<int:id>', methods=['PATCH'])
 @requires_auth('patch:body_measurements')
 def update_user_body_measurement(payload, id):
     user_id = payload['sub']
-    body_measurement = Body_Measurement.query.filter_by(user_id=user_id, id=id).first()
+    body_measurement = Body_Measurement.query.filter_by(
+        user_id=user_id, id=id).first()
     body_measurement_data = request.get_json()
     if body_measurement_data is None:
         abort(422)
@@ -161,6 +200,8 @@ def update_user_body_measurement(payload, id):
         }), 200
     except:
         abort(422)
+
+
 '''
     POST /users
         it should create a new user
@@ -168,6 +209,8 @@ def update_user_body_measurement(payload, id):
         it should return status code 200 and json {"success": True, "users": user}
             or appropriate status code indicating reason for failure
 '''
+
+
 @app.route('/users', methods=['POST'])
 @requires_auth('post:users')
 def create_user(payload):
@@ -226,6 +269,7 @@ def create_user_body_measurement(payload):
     except:
         abort(422)
 
+
 '''
   DELETE /user/<int:id>
         it should delete a user
@@ -233,6 +277,8 @@ def create_user_body_measurement(payload):
         it should return status code 200 and json {"success": True, "delete": id}
             or appropriate status code indicating reason for failure
 '''
+
+
 @app.route('/user/<int:id>', methods=['DELETE'])
 @requires_auth('delete:users')
 def delete_user(payload, id):
@@ -246,9 +292,12 @@ def delete_user(payload, id):
     except:
         abort(422)
 
+
 '''
 Error Handling
 '''
+
+
 @app.errorhandler(422)
 def unprocessable(error):
     return jsonify({
@@ -256,6 +305,7 @@ def unprocessable(error):
         "error": 422,
         "message": "Unprocessable"
     }), 422
+
 
 @app.errorhandler(403)
 def forbidden(error):
@@ -265,13 +315,15 @@ def forbidden(error):
         "message": "Forbidden"
     }), 403
 
+
 @app.errorhandler(400)
 def bad_request(error):
     return jsonify({
         "success": False,
         "error": 400,
-        "message": "bad request"
+        "message": error.description
     }), 400
+
 
 @app.errorhandler(404)
 def not_found(error):
@@ -280,6 +332,7 @@ def not_found(error):
         "error": 404,
         "message": "resource not found"
     }), 404
+
 
 @app.errorhandler(AuthError)
 def auth_error(error):
