@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, jsonify, abort, redirect
 from sqlalchemy import exc
 import json
 from flask_cors import CORS
@@ -21,7 +21,7 @@ CORS(app)
 # ROUTES
 @app.route('/')
 def index():
-    return 'Welcome to the Fit Tracker API'
+   return redirect('https://dev-ht91p085.us.auth0.com/authorize?audience=protones&response_type=token&client_id=10aH57S9A0QVZyoQqyX0FqIcFif9Sn1Q&redirect_uri=https://fittracker2.herokuapp.com/users-detail')
 
 '''
     GET /users
