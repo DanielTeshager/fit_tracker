@@ -41,3 +41,17 @@ The following roles are available:
     - "get:user-detail",
     - "get:body_measurements"
 
+## API Endpoints
+- Thorough documentation of all the endpoints is provided in the application itself.
+
+## Accessing the API
+- The API is accessed via the following link: https://fittracker2.herokuapp.com/
+- After logging in, the API will return a JWT token.
+- The token is used to access the API.
+
+# Database
+sample database is created in the following location:
+[]: # Path: sqfile.sql
+
+
+
