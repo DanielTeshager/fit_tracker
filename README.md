@@ -1,11 +1,15 @@
 # Fit Tracker - A simple fitness tracker API
 
 ## Getting Started
+This project is a simple API that allows you to track your fitness data. It allow
+you to create a user and correponding fitness data.
+The API is written in [Python](https://www.python.org/) and is hosted on [Heroku](https://www.heroku.com/).
+
 
 ## Install Dependencies
 
 Run `pip install -r requirements.txt` to install any dependencies.
-
+I used python version 3.8.9 and pip version 21.3.1.
 
 ## Testing the Application
 1. Create a database called test_fit_tracker.
